@@ -1,5 +1,4 @@
-
 var test = require('test');
-var console = require.env.console || require.env.window.console;
-console.print('PASS');
-
+var console = require('console');
+test.assert(require.env, 'env exists');
+console.print('DONE', 'info');
