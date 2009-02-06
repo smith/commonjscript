@@ -1,8 +1,9 @@
 var test = require('test');
 var console = require('console');
 try {
-    test.assert(require('bogus') === undefined, 'require returns undefined when module not found');
+    require('bogus');
+    console.print('FAIL require throws error when module missing', 'fail');
 } catch (exception) {
-    console.print('FAIL require threw an error instead of returning undefined', 'fail');
+    console.print('PASS require throws error when module missing', 'pass');
 }
 console.print('DONE', 'info');
