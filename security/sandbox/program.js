@@ -1,6 +1,7 @@
 var assert = require('test').assert;
-var console = require('console');
 var modules = require('modules');
+var print = require.env.print;
+
 var sandbox = modules.Sandbox(require.loader);
 assert(sandbox('a').foo == sandbox('a').foo, 'sandbox == sandbox');
 assert(require('a').foo !== sandbox('a').foo, 'require != sandbox');
@@ -17,4 +18,4 @@ var loader = Loader();
 var sandbox4 = modules.Sandbox(loader);
 assert(sandbox4('a').foo() == 2, 'homemade loader');
 
-console.print('DONE', 'info');
+print('DONE', 'info');

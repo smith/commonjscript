@@ -2,4 +2,4 @@ var test = require('test');
 var a = require('submodule/a');
 var b = require('submodule/b');
 test.assert(a.foo == b.foo, 'a and b share foo through a relative require');
-require('console').print('DONE', 'info');
+require.env.print('DONE', 'info');

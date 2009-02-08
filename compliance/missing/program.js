@@ -1,9 +1,9 @@
 var test = require('test');
-var console = require('console');
+var print = require.env.print;
 try {
     require('bogus');
-    console.print('FAIL require throws error when module missing', 'fail');
+    print('FAIL require throws error when module missing', 'fail');
 } catch (exception) {
-    console.print('PASS require throws error when module missing', 'pass');
+    print('PASS require throws error when module missing', 'pass');
 }
-console.print('DONE', 'info');
+print('DONE', 'info');

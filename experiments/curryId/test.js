@@ -1,11 +1,11 @@
 
-var console = require('console');
+var print = require.env.print;
 
 exports.assert = function (guard, message) {
     if (guard) {
-        console.print('PASS ' + message, 'pass');
+        print('PASS ' + message, 'pass');
     } else {
-        console.print('FAIL ' + message, 'fail');
+        print('FAIL ' + message, 'fail');
     }
 };
 

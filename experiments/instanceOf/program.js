@@ -1,5 +1,6 @@
 var console = require('console');
 var assert = require('test').assert;
+var print = require.env.print;
 var instanceOf = function (instance, moduleId, typeName) {
     if (!require.isLoaded(moduleId))
         return false;
@@ -11,4 +12,4 @@ var a = require('a');
 var foo = new a.Foo();
 assert(!instanceOf(bar, 'a', 'Foo'), 'bar not instanceOf after load');
 assert(instanceOf(foo, 'a', 'Foo'), 'foo instanceOf after load');
-console.print('DONE', 'info');
+print('DONE', 'info');

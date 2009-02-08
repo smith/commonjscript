@@ -1,6 +1,13 @@
-var console = require('console');
 var test = require('test');
+var print = require.env.print;
+
+exports.foo = require.curryId(function (id) {
+    return id;
+});
+
 var a = require('a');
-console.print(a.foo());
+print(a.foo());
 test.assert(a.foo() == 'program', 'curryId');
-console.print('DONE', 'info');
+test.assert(exports.foo() == 'program', 'curryId in own module');
+
+print('DONE', 'info');
