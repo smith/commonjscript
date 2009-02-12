@@ -1,11 +1,13 @@
 
-var print = require.env.print;
+exports.print = function () {
+    require.env.print.apply(undefined, arguments);
+};
 
 exports.assert = function (guard, message) {
     if (guard) {
-        print('PASS ' + message, 'pass');
+        exports.print('PASS ' + message, 'pass');
     } else {
-        print('FAIL ' + message, 'fail');
+        exports.print('FAIL ' + message, 'fail');
     }
 };
 
