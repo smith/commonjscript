@@ -1,6 +1,6 @@
 
 exports.print = function () {
-    require.env.print.apply(undefined, arguments);
+    environment.print.apply(undefined, arguments);
 };
 
 exports.assert = function (guard, message) {

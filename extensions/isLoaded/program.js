@@ -1,6 +1,6 @@
 var console = require('console');
 var test = require('test');
-var print = require.env.print;
+var print = environment.print;
 test.assert(require.isLoaded('program'), 'current isLoaded');
 test.assert(require.isLoaded('a') == false, 'not yet loaded');
 require('a');

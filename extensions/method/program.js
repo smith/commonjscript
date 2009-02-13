@@ -9,4 +9,4 @@ test.assert(a.getClosed() === undefined, 'get closed');
 var a2 = require('a');
 a2.set(20);
 test.assert(a.get() == 10, 'unique exports');
-require.env.print('DONE', 'info');
+environment.print('DONE', 'info');

@@ -1,6 +1,6 @@
 var console = require('console');
 var test = require('test');
-var print = require.env.print;
+var print = environment.print;
 try {
     include('foo');
     test.assert(foo() == 1, 'imports bound in local scope');

@@ -1,4 +1,4 @@
-var print = require.env.print;
+var print = environment.print;
 
 exports.foo = require.curryId(function (id) {
     return id;

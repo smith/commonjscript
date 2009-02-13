@@ -1,1 +1,1 @@
-require('program.js').monkey = 10;
+require('program').monkey = 10;

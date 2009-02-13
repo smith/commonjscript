@@ -1,4 +1,4 @@
-var print = require.env.print;
+var print = environment.print;
 var hasOwnProperty = require('hasOwnProperty');
 var toString = require('toString');
 print('DONE', 'info');

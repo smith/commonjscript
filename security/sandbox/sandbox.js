@@ -1,7 +1,7 @@
 
-exports.Sandbox = function (loader, env, modules) {
+exports.Sandbox = function (loader, environment, modules) {
     if (!modules) modules = {};
-    if (!env) env = require.env;
+    if (!env) env = environment;
     var sandbox = function (id, baseId) {
 
         id = loader.resolve(id, baseId);
@@ -11,7 +11,7 @@ exports.Sandbox = function (loader, env, modules) {
             var factory = loader.load(id);
             var exports = modules[id] = {};
             var require = Require(id);
-            factory(require, exports);
+            factory(require, exports, env);
         }
 
         /* snapshot exports with requested bound methods */
@@ -57,7 +57,7 @@ exports.Sandbox = function (loader, env, modules) {
                 throw exception;
             }
         };
-        require.env = env;
+        environment = env;
         require.id = baseId;
         require.loader = loader;
         require.curryId = function (callback) {

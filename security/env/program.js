@@ -1,3 +1,3 @@
 var test = require('test');
-test.assert(require.env, 'env exists');
-require.env.print('DONE', 'info');
+test.assert(environment, 'env exists');
+environment.print('DONE', 'info');

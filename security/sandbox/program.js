@@ -1,6 +1,6 @@
 var assert = require('test').assert;
 var modules = require('modules');
-var print = require.env.print;
+var print = environment.print;
 
 var sandbox = modules.Sandbox(require.loader);
 assert(sandbox('a').foo == sandbox('a').foo, 'sandbox == sandbox');

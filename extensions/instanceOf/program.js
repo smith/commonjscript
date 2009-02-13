@@ -1,6 +1,6 @@
 var console = require('console');
 var assert = require('test').assert;
-var print = require.env.print;
+var print = environment.print;
 var instanceOf = function (instance, moduleId, typeName) {
     if (!require.isLoaded(moduleId))
         return false;
