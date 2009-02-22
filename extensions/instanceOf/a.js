@@ -1,2 +1,0 @@
-exports.Foo = function () {
-};
