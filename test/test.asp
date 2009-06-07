@@ -5,7 +5,9 @@
 // subsequent test suite
 
 // print function
-print = environment.print;
+require.paths = ["."];
+var sys = require("sys"),
+    print = sys.print;
 
 print("-- Trivial --");
 require.paths = ["suite/trivial"];
@@ -15,61 +17,61 @@ require.paths = ["suite/trivial"];
 print("");
 print("-- Compliance --");
 print("");
-print("-- Absolute --");
+print("absolute");
 require.paths = ["suite/compliance/absolute"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/absolute/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Cyclic --");
+print("cyclic");
 require.paths = ["suite/compliance/cyclic"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/cyclic/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Exact Exports --");
+print("exactExports");
 require.paths = ["suite/compliance/exactExports"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/exactExports/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Has Own Property --");
+print("hasOwnProperty");
 require.paths = ["suite/compliance/hasOwnProperty"];
-print("THROWS ERROR SO IS NOT HERE YET");
 </script>
+<script runat="server" language="javascript" src="suite/compliance/hasOwnProperty/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Method --");
+print("method");
 require.paths = ["suite/compliance/method"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/method/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Missing --");
+print("missing");
 require.paths = ["suite/compliance/missing"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/missing/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Monkeys! --");
+print("monkeys");
 require.paths = ["suite/compliance/monkeys"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/monkeys/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Nested --");
+print("nested");
 require.paths = ["suite/compliance/nested"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/nested/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Relative --");
+print("relative");
 require.paths = ["suite/compliance/relative"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/relative/program.js"></script>
 <script runat="server" language="javascript">
 print("");
-print("-- Transitive --");
+print("transitive");
 require.paths = ["suite/compliance/transitive"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/transitive/program.js"></script>
