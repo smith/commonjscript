@@ -1,14 +1,15 @@
 /**
- * @fileOverview An implentation of JavaScript modules for use in an ASP
- *  environment. This implentation is based on the one used in Narhwal
+ * @fileOverview An implentation of JavaScript modules for use in an ASP or 
+ *   WScript environment. This implementation is based on the one used in 
+ *   Narhwal
  *
  * @see <a href="https://wiki.mozilla.org/ServerJS/Modules/SecurableModules">ServerJS/Modules/SecurableModules</a>
- * @see <a href="http://jackjs.org/">Jack</a>
+ * @see <a href="http://github.com/tlrobinson/narwhal/tree/master">Narwhal</a>
  * @author Nathan L Smith <nlloyds@gmail.com>
  * @date February 21, 2009
  */
 
-/*global ActiveXObject, Response, Server, exports, require */
+/*global ActiveXObject, Response, Server, WScript, exports, require */
 /*jslint evil:true */
 
 (function () {
@@ -19,10 +20,7 @@ if (typeof require === "function") { return; }
 /** Global exports object */
 if (typeof exports === "undefined") { exports = {}; }
 
-/** 
- * A print function for use in logging
- */
-// TODO: Make this work on WScript
+/** A print function for use in logging */
 function print() {
     var out = Array.prototype.slice.call(arguments).join(" ");
     if (typeof WScript === "object") {

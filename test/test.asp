@@ -5,7 +5,6 @@
 // subsequent test suite
 
 // print function
-require.paths = ["."];
 var sys = require("sys"),
     print = sys.print;
 
@@ -27,6 +26,12 @@ print("cyclic");
 require.paths = ["suite/compliance/cyclic"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/cyclic/program.js"></script>
+<script runat="server" language="javascript">
+print("");
+print("determinism");
+require.paths = ["suite/compliance/determinism"];
+</script>
+<script runat="server" language="javascript" src="suite/compliance/determinism/program.js"></script>
 <script runat="server" language="javascript">
 print("");
 print("exactExports");
@@ -63,6 +68,12 @@ print("nested");
 require.paths = ["suite/compliance/nested"];
 </script>
 <script runat="server" language="javascript" src="suite/compliance/nested/program.js"></script>
+<script runat="server" language="javascript">
+print("");
+print("reflexive");
+require.paths = ["suite/compliance/reflexive"];
+</script>
+<script runat="server" language="javascript" src="suite/compliance/reflexive/program.js"></script>
 <script runat="server" language="javascript">
 print("");
 print("relative");
