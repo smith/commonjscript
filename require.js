@@ -1,45 +1,58 @@
 // commonjscript require
 
-/*global ActiveXObject, Response, Server, WScript */
+/*global require, exports, ActiveXObject, Response, Server, WScript */
 /*jslint evil:true */
 
-(function (global) {
+// Globals
 
-var platform, fs = {}, paths = [];
+(function () {
+
+var modules = {}, paths = [];
 
 // Base setup
 // =============================================================================
 
 // Don't do anything if require is already there
-if (typeof global.require === "function") { return; }
+if (typeof require === "function") { return; }
 
 // Global exports object
-if (typeof global.exports === "undefined") { global.exports = {}; }
+if (typeof exports === "undefined") { exports = {}; }
+
+// Stand-in for require
+require = function (id) { return modules[id]; };
+
+// System
+// =============================================================================
+modules.system = (function (exports) {
+
+var platform;
+
+exports.engine = "jscript";
+exports.os = "windows";
 
 // WScript or ASP?
 if (typeof Response === "object" && typeof Response.write !== "undefined") {
     platform = "asp";
 } else if (typeof WScript === "object") { platform = "wscript";
 } else { platform = "unknown"; }
-
-// alias for Server.mapPath on ASP
-function m(path) { return platform === "asp" ? Server.mapPath(path) : path; }
+exports.platform = platform;
 
 // print function
-function print() {
+exports.print = function () {
     var out = Array.prototype.slice.call(arguments).join(" ");
     if (platform === "wscript") { WScript.echo(out); }
     else if (platform === "asp") { Response.write(out + "<br />"); }
-}
-
-// Filesystem
-// =============================================================================
-
-fs = {
-    // Filesystem object
-    o: new ActiveXObject("Scripting.FileSystemObject")
-
 };
+
+return exports;
+})({});
+
+// File
+// =============================================================================
+modules.file = (function (exports) {
+
+return exports;
+})({});
 
 // Loader
 // =============================================================================
@@ -52,10 +65,10 @@ function Loader() {
 // =============================================================================
 
 function Sandbox() {
-    return function () {};
+    return require;
 }
 
-// ============================================================================
-global.require = Sandbox({ loader: Loader({ paths: paths }) });
+// =============================================================================
+require = Sandbox({ loader: Loader({ paths: paths }) });
 
 })(this);

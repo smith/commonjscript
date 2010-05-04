@@ -1,7 +1,7 @@
 {
     "name": "commonjscript",
     "description": "An implementation of the CommonJS API for Classic ASP and Windows Script Host",
-    "version": "1.0.0",
+    "version": "0.0.0",
     "maintainers": [{
         "name": "Nathan L Smith",
         "email": "nlloyds@gmail.com",
