@@ -42,8 +42,14 @@ exports.evaluate = function (text) {
     // JScript's eval is not ES3 compliant, so the function needs to be
     // assigned to a variable.
     // @see http://www.bigresource.com/ASP-JScript-eval-bug-6nZST3Bk.html
-    var result;
-    eval("result = function (require, exports, module) {" + text + "/**/\n};");
+    var result, ee;
+    eval("result = function (require, exports, module) { try {" + text +
+        // Fancy error augmentation surgery
+         "} catch (e) {" +
+         "throw new e.constructor(e.description + ' (in module: ' + module.id + ')');" +
+         "}};"
+    );
+
     return result;
 };
 
@@ -56,7 +62,13 @@ print = require("system").print; // Add print function here
 (function (exports) {
 
 var fso = new ActiveXObject("Scripting.FileSystemObject"),
-    stream = new ActiveXObject("ADODB.Stream");
+    stream = new ActiveXObject("ADODB.Stream"),
+    platform = require("system").platform;
+
+// Wrap all calls in Server.mapPath if we're on ASP
+function m(path) {
+    return platform === "asp" ? Server.mapPath(path) : path;
+}
 
 // FIXME
 exports.dirname = function (path) {
@@ -82,7 +94,7 @@ exports.isAbsolute = function (path) {
 };
 
 exports.isFile = function (path) {
-    return fso.fileExists(path);
+    return fso.fileExists(m(path));
 };
 
 exports.join = function () {
@@ -90,7 +102,7 @@ exports.join = function () {
 };
 
 exports.mtime = function (path) {
-    return fso.getFile(path).dateLastModified;
+    return fso.getFile(m(path)).dateLastModified;
 }
 
 // TODO
@@ -106,14 +118,17 @@ exports.read = function (path, options) {
     stream.open();
         stream.charset = charset;
         stream.type = adTypeText;
-        stream.loadFromFile(path);
+        stream.loadFromFile(m(path));
         text = stream.readText();
     stream.close();
 
     return text;
 };
 
-exports.Path = function (path) { this.valueOf = function () { return this; }; };
+exports.Path = function (path) {
+    this.path = m(path);
+    this.valueOf = function () { return this.path; };
+};
 
 })(modules.file = {});
 
@@ -348,11 +363,11 @@ exports.Sandbox = function (options) {
                 print(new Array(++debugDepth + 1).join("\\") + " " + id, 'module');
 
             var globals = {};
-            if (sandbox.debug) {
+            //if (sandbox.debug) {
                 // record globals
-                for (var name in global)
-                    globals[name] = true;
-            }
+                //for (var name in global)
+                    //globals[name] = true;
+            //}
 
             var exports;
             if (options.once) {
@@ -436,12 +451,12 @@ exports.Sandbox = function (options) {
             factory(scope);
             */
 
-            if (sandbox.debug) {
+            //if (sandbox.debug) {
                 // check for new globals
-                for (var name in global)
-                    if (!globals[name])
-                        system.print("NEW GLOBAL: " + name);
-            }
+                //for (var name in global)
+                    //if (!globals[name])
+                        //system.print("NEW GLOBAL: " + name);
+            //}
 
             if (sandbox.debug)
                 print(new Array(debugDepth-- + 1).join("/") + " " + id, 'module');
@@ -637,13 +652,11 @@ exports.sandbox = function(main, system, options) {
 // =============================================================================
 
 // Set up paths
-require.paths = [".", "lib", "engines/" + require("system").engine + "/lib"];
+paths = ["lib", "engines/" + require("system").engine + "/lib"];
 
 // Create require
 require = require("sandbox").Sandbox({
-    loader: require("loader").Loader({
-        paths: require.paths,
-        debug: require.debug
+    loader: require("loader").Loader({ paths: paths, debug: require.debug
     }),
     modules: modules,
     debug: require.debug
