@@ -30,7 +30,7 @@ global = {};
 (function (exports) {
 
 exports.engine = "jscript";
-exports.debug = "require.debug";
+exports.debug = require.debug;
 
 // We're treating paths on ASP like Unix paths, so misreport the os.
 // Hey, IE's been calling itself Mozilla all these years, so this is nothing.
@@ -41,26 +41,22 @@ exports.Module = function (text, path, line) {
     // that takes the inject properties
     return function (inject) {
         inject = inject || {};
-        var names = [], result;
+        var names = [], values = [], result;
 
         for (var name in inject) {
             if (Object.prototype.hasOwnProperty.call(inject, name)) {
                 names.push(name);
+                values.push(inject[name]);
             }
         }
 
         // JScript's eval is not ES3 compliant, so the function needs to be
         // assigned to a variable.
         // @see http://www.bigresource.com/ASP-JScript-eval-bug-6nZST3Bk.html
-        eval("result = function (" + names.join(", ") + ") { " + text + " };");
-        //eval("result = function (require, exports, module) { try {" + text +
-            // Fancy error augmentation surgery
-             //"} catch (e) {" +
-             //"throw new e.constructor(e.description + ' (in module: ' + path + ')');" +
-             //"}};"
-        //);
-        return result;
-    };
+        eval("result = function (" + names.join(", ") + ") { " + text + "};");
+
+        return result.apply(null, values);
+    }
 };
 
 })(modules.engine = {});
