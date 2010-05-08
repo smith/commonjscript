@@ -1,119 +1,414 @@
-// commonjscript require
+// CommonJScript for ASP
 
-/*global require, exports, ActiveXObject, Response, Server, WScript */
+/*global require, exports, ActiveXObject, Response, Server */
 /*jslint evil:true */
 
-(function (global) {
+(function () {
 
 // Base setup
 // =============================================================================
-var modules = {}, paths = [], print;
+var modules = {}, paths = [], print, global;
 
 // Don't do anything if require is already there
 if (typeof require === "function") { return; }
 
+// ASP Only
+if (typeof Server === "undefined" || typeof Response === "undefined") {
+    throw Error("This script only runs in ASP.");
+}
+
 // Stand-in for require
-require = function (id) { return modules[id]; };
+require = function (id) { return modules[id]; }; // global
+
+// JScript does not support assigning properties explicitly on the global
+// object or a reference to it. Some included modules try to modify this, so
+// use an empty object in its place.
+global = {};
+
+// Engine
+// =============================================================================
+(function (exports) {
+
+exports.engine = "jscript";
+exports.debug = "require.debug";
+
+// We're treating paths on ASP like Unix paths, so misreport the os.
+// Hey, IE's been calling itself Mozilla all these years, so this is nothing.
+exports.os = "asp";
+
+exports.Module = function (text, path, line) {
+    // Return a function that takes an object, which returns another function
+    // that takes the inject properties
+    return function (inject) {
+        inject = inject || {};
+        var names = [], result;
+
+        for (var name in inject) {
+            if (Object.prototype.hasOwnProperty.call(inject, name)) {
+                names.push(name);
+            }
+        }
+
+        // JScript's eval is not ES3 compliant, so the function needs to be
+        // assigned to a variable.
+        // @see http://www.bigresource.com/ASP-JScript-eval-bug-6nZST3Bk.html
+        eval("result = function (" + names.join(", ") + ") { " + text + " };");
+        //eval("result = function (require, exports, module) { try {" + text +
+            // Fancy error augmentation surgery
+             //"} catch (e) {" +
+             //"throw new e.constructor(e.description + ' (in module: ' + path + ')');" +
+             //"}};"
+        //);
+        return result;
+    };
+};
+
+})(modules.engine = {});
 
 // System
 // =============================================================================
 (function (exports) {
 
-var platform;
+exports.platform = "asp";
 
-exports.engine = "jscript";
-exports.os = "windows";
-exports.debug = require.debug;
-
-// WScript or ASP?
-if (typeof Response === "object" && typeof Response.write !== "undefined") {
-    platform = "asp";
-} else if (typeof WScript === "object") { platform = "wscript";
-} else { platform = "unknown"; }
-exports.platform = platform;
-
-exports.print = function () {
-    var out = Array.prototype.slice.call(arguments).join(" ");
-    if (platform === "wscript") { WScript.echo(out); }
-    else if (platform === "asp") { Response.write(out + "<br />"); }
+exports.stdout = {
+    print: function () {
+        Response.write(Array.prototype.slice.call(arguments).join(" ") +
+            "<br />");
+    }
 };
 
-exports.evaluate = function (text) {
-    // JScript's eval is not ES3 compliant, so the function needs to be
-    // assigned to a variable.
-    // @see http://www.bigresource.com/ASP-JScript-eval-bug-6nZST3Bk.html
-    var result, ee;
-    eval("result = function (require, exports, module) { try {" + text +
-        // Fancy error augmentation surgery
-         "} catch (e) {" +
-         "throw new e.constructor(e.description + ' (in module: ' + module.id + ')');" +
-         "}};"
-    );
+// system.stdio.print is not defined in any specs, but the Modules/1.0 test
+// suite uses it
+exports.stdio = { print: exports.stdout.print };
 
-    return result;
-};
+exports.print = exports.stdout.print;
+
+// TODO
+exports.env = {};
 
 })(modules.system = {});
 
 print = require("system").print; // Add print function here
 
 // File
+//
+// From narwhal-lib/lib/narwhal/fs-boot.js
+// =============================================================================
+(function (exports) {
+// -- kriskowal Kris Kowal Copyright (C) 2009-2010 MIT License
+// -- tlrobinson Tom Robinson TODO
+
+/**
+ * Pure JavaScript implementations of file system path
+ * manipulation.
+ *
+ * This module depends on the non CommonJS "engine" module,
+ * particularly for an "os" property that has the words
+ * "windows" or "winnt" to distinguish Windows from Unix
+ * file systems.
+ */
+
+// NOTE: this file may be used is the engine bootstrapping
+// process, so any "requires" must be accounted for in
+// narwhal.js
+
+/*whatsupdoc*/
+/*markup markdown*/
+
+var ENGINE = require("engine");
+
+/**
+ * @name ROOT
+ * * `/` on Unix
+ * * `\` on Windows
+ */
+
+/**
+ * @name SEPARATOR
+ * * `/` on Unix
+ * * `\` on Windows
+ */
+
+/**
+ * @name ALT_SEPARATOR
+ * * undefined on Unix
+ * * `/` on Windows
+ */
+
+if (/\bwind(nt|ows)\b/i.test(ENGINE.os)) {
+    exports.ROOT = "\\";
+    exports.SEPARATOR = "\\";
+    exports.ALT_SEPARATOR = "/";
+} else {
+    exports.ROOT = "/";
+    exports.SEPARATOR = "/";
+    exports.ALT_SEPARATOR = undefined;
+}
+
+// we need to make sure the separator regex is always in sync with the separators.
+// this caches the generated regex and rebuild if either separator changes.
+var separatorCached, altSeparatorCached, separatorReCached;
+/**
+ * @function
+ */
+exports.SEPARATORS_RE = function () {
+    if (
+        separatorCached !== exports.SEPARATOR ||
+        altSeparatorCached !== exports.ALT_SEPARATOR
+    ) {
+        separatorCached = exports.SEPARATOR;
+        altSeparatorCached = exports.ALT_SEPARATOR;
+        separatorReCached = new RegExp("[" +
+            (separatorCached || '').replace(/[-[\]{}()*+?.\\^$|,#\s]/g, "\\$&") +
+            (altSeparatorCached || '').replace(/[-[\]{}()*+?.\\^$|,#\s]/g, "\\$&") +
+        "]", "g");
+    }
+    return separatorReCached;
+}
+
+/**
+ * separates a path into components.  If the path is
+ * absolute, the first path component is the root of the
+ * file system, indicated by an empty string on Unix, and a
+ * drive letter followed by a colon on Windows.
+ * @returns {Array * String}
+ */
+exports.split = function (path) {
+    var parts;
+    try {
+        parts = String(path).split(exports.SEPARATORS_RE());
+    } catch (exception) {
+        throw new Error("Cannot split " + (typeof path) + ', "' + path + '"');
+    }
+    // this special case helps isAbsolute
+    // distinguish an empty path from an absolute path
+    // "" -> [] NOT [""]
+    if (parts.length == 1 && parts[0] == "")
+        return [];
+    // "a" -> ["a"]
+    // "/a" -> ["", "a"]
+    return parts;
+};
+
+/**
+ * Takes file system paths as variadic arguments and treats
+ * each as a file or directory path and returns the path
+ * arrived by traversing into the those paths.  All
+ * arguments except for the last must be paths to
+ * directories for the result to be meaningful.
+ * @returns {String} path
+ */
+exports.join = function () {
+    if (arguments.length === 1 && typeof arguments[0] === "object")
+        return exports.normal.apply(exports, arguments[0]);
+    return exports.normal.apply(exports, arguments);
+};
+
+/**
+ * Takes file system paths as variadic arguments and treats
+ * each path as a location, in the URL sense, resolving each
+ * new location based on the previous.  For example, if the
+ * first argument is the absolute path of a JSON file, and
+ * the second argument is a path mentioned in that JSON
+ * file, `resolve` returns the absolute path of the
+ * mentioned file.
+ * @returns {String} path
+ */
+exports.resolve = function () {
+    var root = "";
+    var parents = [];
+    var children = [];
+    var leaf = "";
+    for (var i = 0; i < arguments.length; i++) {
+        var path = String(arguments[i]);
+        if (path == "")
+            continue;
+        var parts = path.split(exports.SEPARATORS_RE());
+        if (exports.isAbsolute(path)) {
+            root = parts.shift() + exports.SEPARATOR;
+            parents = [];
+            children = [];
+        }
+        leaf = parts.pop();
+        if (leaf == "." || leaf == "..") {
+            parts.push(leaf);
+            leaf = "";
+        }
+        for (var j = 0; j < parts.length; j++) {
+            var part = parts[j];
+            if (part == "." || part == '') {
+            } else if (part == "..") {
+                if (children.length) {
+                    children.pop();
+                } else {
+                    if (root) {
+                    } else {
+                        parents.push("..");
+                    }
+                }
+            } else {
+                children.push(part);
+            }
+        };
+    }
+    path = parents.concat(children).join(exports.SEPARATOR);
+    if (path) leaf = exports.SEPARATOR + leaf;
+    return root + path + leaf;
+};
+
+/**
+ * Takes paths as any number of arguments and reduces them
+ * into a single path in normal form, removing all "." path
+ * components, and reducing ".." path components by removing
+ * the previous path component if possible.
+ * @returns {String} path
+ */
+exports.normal = function () {
+    var root = "";
+    var parents = [];
+    var children = [];
+    for (var i = 0, ii = arguments.length; i < ii; i++) {
+        var path = String(arguments[i]);
+        // empty paths have no affect
+        if (path === "")
+            continue;
+        var parts = path.split(exports.SEPARATORS_RE());
+        if (exports.isAbsolute(path)) {
+            root = parts.shift() + exports.SEPARATOR;
+            parents = [];
+            children = [];
+        }
+        for (var j = 0, jj = parts.length; j < jj; j++) {
+            var part = parts[j];
+            if (part == "." || part == '') {
+            } else if (part == "..") {
+                if (children.length) {
+                    children.pop();
+                } else {
+                    if (root) {
+                    } else {
+                        parents.push("..");
+                    }
+                }
+            } else {
+                children.push(part);
+            }
+        }
+    }
+    path = parents.concat(children).join(exports.SEPARATOR);
+    return root + path;
+};
+
+/***
+ * @returns {Boolean} whether the given path begins at the
+ * root of the file system or a drive letter.
+ */
+exports.isAbsolute = function (path) {
+    // for absolute paths on any operating system,
+    // the first path component always determines
+    // whether it is relative or absolute.  On Unix,
+    // it is empty, so ['', 'foo'].join('/') == '/foo',
+    // '/foo'.split('/') == ['', 'foo'].
+    var parts = exports.split(path);
+    // split('') == [].  '' is not absolute.
+    // split('/') == ['', ''] is absolute.
+    // split(?) == [''] does not occur.
+    if (parts.length == 0)
+        return false;
+    return exports.isRoot(parts[0]);
+};
+
+/**
+ * @returns {Boolean} whether the given path does not begin
+ * at the root of the file system or a drive letter.
+ */
+exports.isRelative = function (path) {
+    return !exports.isAbsolute(path);
+};
+
+/**
+ * @returns {Boolean} whether the given path component
+ * corresponds to the root of the file system or a drive
+ * letter, as applicable.
+ */
+exports.isRoot = function (first) {
+    if (/\bwind(nt|ows)\b/i.test(ENGINE.os)) {
+        return /:$/.test(first);
+    } else {
+        return first == "";
+    }
+};
+
+/**
+ * @returns {String} the Unix root path or corresponding
+ * Windows drive for a given path.
+ */
+exports.root = function (path) {
+    if (!exports.isAbsolute(path))
+        path = require("./fs").absolute(path);
+    var parts = exports.split(path);
+    return exports.join(parts[0], '');
+};
+
+/**
+ * @returns {String} the parent directory of the given path.
+ */
+exports.directory = function (path) {
+    var parts = exports.split(path);
+    // XXX needs to be sensitive to the root for
+    // Windows compatibility
+    parts.pop();
+    return parts.join(exports.SEPARATOR) || ".";
+};
+
+/**
+ * @returns {String} the last component of a path, without
+ * the given extension if the extension is provided and
+ * matches the given file.
+ * @param {String} path
+ * @param {String} extention an optional extention to detect
+ * and remove if it exists.
+ */
+exports.base = function (path, extension) {
+    var base = path.split(exports.SEPARATORS_RE()).pop();
+    if (extension)
+        base = base.replace(
+            new RegExp(RegExp.escape(extension) + '$'),
+            ''
+        );
+    return base;
+};
+
+/**
+ * @returns {String} the extension (e.g., `txt`) of the file
+ * at the given path.
+ */
+exports.extension = function (path) {
+    path = exports.base(path);
+    path = path.replace(/^\.*/, '');
+    var index = path.lastIndexOf(".");
+    return index <= 0 ? "" : path.substring(index);
+};
+})(modules["narwhal/fs"] = {});
+
+// File - platform specific
 // =============================================================================
 (function (exports) {
 
 var fso = new ActiveXObject("Scripting.FileSystemObject"),
-    stream = new ActiveXObject("ADODB.Stream"),
-    platform = require("system").platform;
+    stream = new ActiveXObject("ADODB.Stream");
 
-// Wrap all calls in Server.mapPath if we're on ASP
-function m(path) {
-    return platform === "asp" ? Server.mapPath(path) : path;
-}
-
-// FIXME
-exports.dirname = function (path) {
-    //return fso.getFile(path).path;
-    return path;
-};
-
-// For Windows API functions that manipulate files, file names can often be
-// relative to the current directory, while some APIs require a fully qualified
-// path. A file name is relative to the current directory if it does not begin
-// with one of the following:
-//
-//  * A UNC name of any format, which always start with two backslash characters
-//  ("\\"). For more information, see the next section.
-//  * A disk designator with a backslash, for example "C:\" or "d:\".
-//  * A single backslash, for example, "\directory" or "\file.txt". This is also
-//  referred to as an absolute path.
-//
-// @see http://stackoverflow.com/questions/2406739/how-to-find-whether-a-given-path-is-absolute-relative-and-convert-it-to-absolute
-// @see http://msdn.microsoft.com/en-us/library/aa365247.aspx#fully_qualified_vs._relative_paths
-exports.isAbsolute = function (path) {
-    return (/^(?:[A-Za-z]:)?\\/).test(path);
-};
+// Wrap some calls in Server.mapPath on ASP
+function m(path) { return Server.mapPath(path) }
 
 exports.isFile = function (path) {
     return fso.fileExists(m(path));
 };
 
-exports.join = function () {
-    return Array.prototype.join.call(arguments, "\\");
-};
-
-exports.mtime = function (path) {
-    return fso.getFile(m(path)).dateLastModified;
-}
-
-// TODO
-exports.normal = function (path) {
-    return path;
-};
-
 exports.read = function (path, options) {
     var charset = (options || {}).charset || "utf-8",
-        adTypeText = 2,
-        text = "";
+        adTypeText = 2, text = "";
 
     stream.open();
         stream.charset = charset;
@@ -124,33 +419,30 @@ exports.read = function (path, options) {
 
     return text;
 };
-
-exports.Path = function (path) {
-    this.path = m(path);
-    this.valueOf = function () { return this.path; };
-};
-
-})(modules.file = {});
+})(modules.file = modules["narwhal/fs"]);
 
 // Loader
+//
+// from narwhal-lib/lib/narwhal/loader.js
 // =============================================================================
 (function (exports) {
 // -- kriskowal Kris Kowal Copyright (C) 2009-2010 MIT License
 // -- cadorn Christoph Dorn
 
-// NOTE: this file is used is the bootstrapping process,
-// so any "requires" must be accounted for in narwhal.js
+// NOTE: when this file is being loaded as part of the
+// Narwhal bootstrapping process, all of the "requires" that
+// occur here have to be manually accounted for (who loads
+// the loader?)
 
-var system = require("system");
+var ENGINE = require("engine");
 // HACK: the stars prevent the file module from being sent to browser
 //  clients with the regexen we're using.  we need a real solution
 //  for this.
-var file = require(/**/"file"/**/);
+var FS = require(/**/"narwhal/fs"/**/);
 
 // this gets swapped out with a full fledged-read before
 //  we're done using it
-var read = file.read;
-var Module = system.Module || system.evaluate; // legacy
+var read = FS.read;
 
 exports.Loader = function (options) {
     var loader = {};
@@ -168,13 +460,14 @@ exports.Loader = function (options) {
 
     loader.find = function (topId) {
         // if it's absolute only search the "root" directory.
-        // file.join() must collapse multiple "/" into a single "/"
-        var searchPaths = file.isAbsolute(topId) ? [""] : paths;
+        // FS.join() must collapse multiple "/" into a single "/"
+        var searchPaths = FS.isAbsolute(topId) ? [""] : paths;
+
         for (var j = 0; j < extensions.length; j++) {
             var extension = extensions[j];
             for (var i = 0; i < searchPaths.length; i++) {
-                var path = file.join(searchPaths[i], topId + extension);
-                if (file.isFile(path))
+                var path = FS.join(searchPaths[i], topId + extension);
+                if (FS.isFile(path))
                     return path;
             }
         }
@@ -184,8 +477,8 @@ exports.Loader = function (options) {
     loader.fetch = function (topId, path) {
         if (!path)
             path = loader.find(topId);
-        if (typeof file.mtime === "function")
-            timestamps[path] = file.mtime(path);
+        if (typeof FS.lastModified === "function")
+            timestamps[path] = FS.lastModified(path);
         if (debug)
             print('loader: fetching ' + topId);
         var text = read(path, {
@@ -197,10 +490,10 @@ exports.Loader = function (options) {
     };
 
     loader.Module = function (text, topId, path) {
-        if (system.evaluate) {
+        if (ENGINE.Module) {
             if (!path)
                 path = loader.find(topId);
-            var factory = Module(text, path, 1);
+            var factory = ENGINE.Module(text, path, 1);
             factory.path = path;
             return factory;
         } else {
@@ -220,7 +513,7 @@ exports.Loader = function (options) {
     loader.load = function (topId, path) {
         if (!Object.prototype.hasOwnProperty.call(factories, topId)) {
             loader.reload(topId, path);
-        } else if (typeof file.mtime === "function") {
+        } else if (typeof FS.lastModified === "function") {
             var path = loader.find(topId);
             if (loader.hasChanged(topId, path))
                 loader.reload(topId, path);
@@ -241,7 +534,7 @@ exports.Loader = function (options) {
             path = loader.resolve(topId);
         return (
             !Object.prototype.hasOwnProperty.call(timestamps, path) ||
-            file.mtime(path) > timestamps[path]
+            FS.lastModified(path) > timestamps[path]
         );
     };
 
@@ -254,10 +547,10 @@ exports.Loader = function (options) {
 exports.resolve = function (id, baseId) {
     id = String(id);
     if (id.charAt(0) == ".") {
-        id = file.dirname(baseId) + "/" + id;
+        id = FS.directory(baseId) + "/" + id;
     }
     // module ids need to use forward slashes, despite what the OS might say
-    return file.normal(id).replace(/\\/g, '/');
+    return FS.normal(id).replace(/\\/g, '/');
 };
 
 exports.resolvePkg = function(loader, id, baseId, pkg, basePkg) {
@@ -290,10 +583,9 @@ exports.resolvePkg = function(loader, id, baseId, pkg, basePkg) {
         // if id is relative we want a module relative to basePkg if it exists
         if(id.charAt(0) == "." && basePkg) {
             // if baseId is absolute we use it as a base and ignore basePkg
-            if(file.isAbsolute(baseId)) {
-                path = file.Path(baseId);
-            } else
-            if(loader.usingCatalog[basePkg]) {
+            if (FS.isAbsolute(baseId)) {
+                path = FS.Path(baseId);
+            } else if (loader.usingCatalog[basePkg]) {
                 path = loader.usingCatalog[basePkg].libPath.join(baseId);
             } else {
                 throw "basePkg '" + basePkg + "' not known";
@@ -311,6 +603,8 @@ exports.resolvePkg = function(loader, id, baseId, pkg, basePkg) {
 })(modules.loader = {});
 
 // Sandbox
+//
+// from narwhal-lib/lib/narwhal/sandbox.js
 // =============================================================================
 (function (exports) {
 // -- kriskowal Kris Kowal Copyright (C) 2009-2010 MIT License
@@ -318,22 +612,23 @@ exports.resolvePkg = function(loader, id, baseId, pkg, basePkg) {
 // NOTE: this file is used is the bootstrapping process,
 // so any "requires" must be accounted for in narwhal.js
 
-var system = require("system");
+var SYSTEM = require("system");
+var ENGINE = require("engine");
 
 exports.Sandbox = function (options) {
     options = options || {};
     var loader = options.loader;
-    var subsystem = options.system || system || {};
     var exportsMemo = options.modules || {};
     var moduleMemo = {};
-    var debug = options.debug !== undefined ? !!options.debug : !!system.debug;
+    var debug = options.debug !== undefined ? !!options.debug : !!ENGINE.debug;
     var debugDepth = 0;
     var main;
-    var setDisplayName = (system.engine == "jsc");
+    var setDisplayName = (ENGINE.engine == "jsc");
 
     // managed print free variable in the sandbox forwards
     // to system.print in the sandbox
     var subprint = options.print || function () {
+        var subsystem = sandbox("system");
         return subsystem.print.apply(subsystem, arguments);
     };
 
@@ -343,7 +638,7 @@ exports.Sandbox = function (options) {
             options = {};
 
         if (sandbox.debug)
-            print("REQUIRE: id["+id+"] baseId["+baseId+"] pkg["+pkg+"] basePkg["+basePkg+"]");
+            SYSTEM.print("REQUIRE: id["+id+"] baseId["+baseId+"] pkg["+pkg+"] basePkg["+basePkg+"]");
 
         if (loader.resolvePkg) {
             var resolveInfo = loader.resolvePkg(id, baseId, pkg, basePkg);
@@ -354,20 +649,20 @@ exports.Sandbox = function (options) {
         }
 
         if (sandbox.debug)
-            print("USING: id["+id+"] pkg["+pkg+"]");
+            SYSTEM.print("USING: id["+id+"] pkg["+pkg+"]");
 
         /* populate memo with module instance */
         if (!Object.prototype.hasOwnProperty.call(exportsMemo, id) || options.force || options.once) {
 
             if (sandbox.debug)
-                print(new Array(++debugDepth + 1).join("\\") + " " + id, 'module');
+                SYSTEM.print(new Array(++debugDepth + 1).join("\\") + " " + id, 'module');
 
             var globals = {};
-            //if (sandbox.debug) {
+            if (sandbox.debug) {
                 // record globals
-                //for (var name in global)
-                    //globals[name] = true;
-            //}
+                for (var name in global)
+                    globals[name] = true;
+            }
 
             var exports;
             if (options.once) {
@@ -407,9 +702,12 @@ exports.Sandbox = function (options) {
                 );
             }
 
-            // this shim supports both the old factory(r, e, m, s, p) and
-            // new factory(scope) module constructor conventions
-            var scope = require;
+            var scope = {
+                "require": require,
+                "exports": exports,
+                "module": module,
+                "print": subprint
+            };
 
             // require.once provides a scope of extra stuff to inject
             if (options.scope) {
@@ -420,16 +718,9 @@ exports.Sandbox = function (options) {
                 }
             }
 
-            scope.load = load;
-            scope.require = require;
-            scope.exports = exports;
-            scope.module = module;
-            scope.system = subsystem;
-            scope.print = subprint;
-
             var completed;
             try {
-                factory(scope, exports, module, subsystem, subprint);
+                factory(scope);
                 completed = true;
             } finally {
                 if (!completed) {
@@ -438,28 +729,15 @@ exports.Sandbox = function (options) {
                 }
             }
 
-            /*
-            // XXX to be uncommented when the above shim is
-            // no longer needed for migration
-            var scope = options.scope || {};
-            scope.load = load;
-            scope.require = require;
-            scope.exports = exports;
-            scope.module = module;
-            scope.system = subsystem;
-            scope.print = subprint;
-            factory(scope);
-            */
-
-            //if (sandbox.debug) {
+            if (sandbox.debug) {
                 // check for new globals
-                //for (var name in global)
-                    //if (!globals[name])
-                        //system.print("NEW GLOBAL: " + name);
-            //}
+                for (var name in global)
+                    if (!globals[name])
+                        SYSTEM.print("NEW GLOBAL: " + name);
+            }
 
             if (sandbox.debug)
-                print(new Array(debugDepth-- + 1).join("/") + " " + id, 'module');
+                SYSTEM.print(new Array(debugDepth-- + 1).join("/") + " " + id, 'module');
 
             // set fn.displayName on exported functions for better debugging
             if (setDisplayName) {
@@ -474,7 +752,7 @@ exports.Sandbox = function (options) {
 
         } else {
             if (sandbox.debug > 1)
-                print(new Array(debugDepth + 1).join("|") + " " + id, 'module');
+                SYSTEM.print(new Array(debugDepth + 1).join("|") + " " + id, 'module');
             exports = exportsMemo[id];
             if (moduleMemo[id]) {
                 moduleMemo[id].setExports = function () {
@@ -557,7 +835,7 @@ exports.Sandbox = function (options) {
     };
 
     sandbox.loader = loader;
-    sandbox.system = system;
+    sandbox.system = SYSTEM;
     sandbox.paths = loader.paths;
     sandbox.extensions = loader.extensions;
     sandbox.debug = debug;
@@ -607,9 +885,6 @@ exports.Sandbox = function (options) {
         var module = {};
         module.id = baseId;
         module.path = path;
-        module.toString = function () {
-            return baseId;
-        };
         module.xNarwhalCurry = function (block) {
             block.xNarwhalCurry = true;
             return block;
@@ -636,11 +911,10 @@ exports.sandbox = function(main, system, options) {
         "sandbox's 'loader' object."
     );
     if (prefix)
-        loader = require("loader/prefix").PrefixLoader(prefix, loader);
+        loader = require("narwhal/loader/prefix").PrefixLoader(prefix, loader);
     var sandbox = exports.Sandbox({
         modules: modules,
         loader: loader,
-        system: system,
         print: print,
         debug: debug
     });
@@ -652,12 +926,12 @@ exports.sandbox = function(main, system, options) {
 // =============================================================================
 
 // Set up paths
-paths = ["lib", "engines/" + require("system").engine + "/lib"];
+paths = ["", "lib", "engines/" + require("engine").engine + "/lib",
+         "engines/" + require("system").platform + "/lib"];
 
 // Create require
 require = require("sandbox").Sandbox({
-    loader: require("loader").Loader({ paths: paths, debug: require.debug
-    }),
+    loader: require("loader").Loader({ paths: paths, debug: require.debug }),
     modules: modules,
     debug: require.debug
 });
