@@ -59,12 +59,12 @@ exports.Module = function (text, path, line) {
             return result.apply(null, values);
         } catch (e) {
             // rethrow error with path
-            ee = new Error(e.number, e.description + " (in " + path + ")");
+            ee = Error(e.number, e.description + " (in " + path + ")");
             ee.name = e.name;
             ee.message = e.message;
             throw ee;
         }
-    }
+    };
 };
 
 })(modules.engine = {});
@@ -404,7 +404,7 @@ var fso = new ActiveXObject("Scripting.FileSystemObject"),
     stream = new ActiveXObject("ADODB.Stream");
 
 // Wrap some calls in Server.mapPath on ASP
-function m(path) { return Server.mapPath(path) }
+function m(path) { return Server.mapPath(path); }
 
 exports.isFile = function (path) {
     return fso.fileExists(m(path));
