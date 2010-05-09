@@ -1,7 +1,7 @@
 {
     "name": "commonjscript",
-    "description": "An implementation of the CommonJS API for Classic ASP and Windows Script Host",
-    "version": "0.0.0",
+    "description": "An implementation of the CommonJS API for Classic ASP",
+    "version": "0.1.0",
     "maintainers": [{
         "name": "Nathan L Smith",
         "email": "nlloyds@gmail.com",
@@ -12,16 +12,21 @@
        "url": "http://www.opensource.org/licenses/mit-license.php"
     }],
     "bugs": "http://github.com/smith/commonjscript/issues",
-    "keywords": ["engine", "jscript", "windows", "asp", "wsh", "modules"],
+    "keywords": ["engine", "jscript", "windows", "asp", "modules"],
     "repositories": [{
         "type": "git",
         "url": "git://github.com/smith/commonjscript.git"
     }],
-    "contributors": [{
-        "name": "Nathan L Smith",
-        "email": "nlloyds@gmail.com",
-        "web": "http://nlsmith.com/"
-    }],
+    "contributors": [
+        {
+            "name": "Nathan L Smith",
+            "email": "nlloyds@gmail.com",
+            "web": "http://nlsmith.com/"
+        },
+        { "name": "Kris Kowal" },
+        { "name": "Tom Robinson" },
+        { "name": "Christoph Dorn" }
+    ],
     "os": ["windows"],
     "engine": ["jscript"],
     "implements": ["CommonJS/Modules/1.0"]

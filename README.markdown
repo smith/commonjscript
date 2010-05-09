@@ -1,16 +1,16 @@
 CommonJScript
 =============
 
-CommonJScript is an implementation of the [CommonJS API](http://commonjs.org/) for Classic ASP and Windows Script Host.
+CommonJScript is an implementation of the [CommonJS API](http://commonjs.org/) for Classic ASP.
 
 The [Modules/1.0](http://commonjs.org/specs/modules/1.0/) specification is currently implemented. Various others are planned for the future.
-
-A few rudimentary modules are included in the *lib* directory.
 
 Usage
 -----
 
-*require.js* can be included in a ASP page or WScript job to provide the `require` function.
+*require.js* can be included in a ASP page or to provide the `require` function.
+
+Some other basic modules (system, engine, file) are also included in that file.
 
 Tests
 -----
@@ -20,12 +20,12 @@ The [CommonJS modules test suite](http://github.com/commonjs/commonjs/tree/maste
     git submodule init
     git submodule update
 
-Run `cscript test.wsf` from the *test* directory for Windows Script Host (CLI), or load *test.asp* on ASP.
+Load *test/index.asp* on ASP to run the tests. `debug=1` can be passed in the query string to turn `require.debug` on.
 
 Acknowledgements
 ----------------
 
-The module loading code is mostly taken from [Narwhal](http://narwhaljs.org).
+Most of the code is taken directly from [Narwhal](http://narwhaljs.org) and [narwhal-lib](http://github.com/kriskowal/narwhal-lib/), so thanks to everyone working on those.
 
 License
 -------
