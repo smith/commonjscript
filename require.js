@@ -41,7 +41,7 @@ exports.Module = function (text, path, line) {
     // that takes the inject properties
     return function (inject) {
         inject = inject || {};
-        var names = [], values = [], result;
+        var names = [], values = [], result, ee;
 
         for (var name in inject) {
             if (Object.prototype.hasOwnProperty.call(inject, name)) {
@@ -55,7 +55,15 @@ exports.Module = function (text, path, line) {
         // @see http://www.bigresource.com/ASP-JScript-eval-bug-6nZST3Bk.html
         eval("result = function (" + names.join(", ") + ") { " + text + "};");
 
-        return result.apply(null, values);
+        try {
+            return result.apply(null, values);
+        } catch (e) {
+            // rethrow error with path
+            ee = new Error(e.number, e.description + " (in " + path + ")");
+            ee.name = e.name;
+            ee.message = e.message;
+            throw ee;
+        }
     }
 };
 
