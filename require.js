@@ -940,4 +940,12 @@ require = require("sandbox").Sandbox({
     debug: require.debug
 });
 
+// Add engine-specific system/file if available
+try {
+    require("system-engine");
+    require("file-engine");
+} catch (e) {
+    if (e.description.indexOf("require error") === -1) { throw e; }
+}
+
 })(this);
