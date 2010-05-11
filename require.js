@@ -95,7 +95,7 @@ exports.env = {};
 
 print = require("system").print; // Add print function here
 
-// File
+// FS
 //
 // From narwhal-lib/lib/narwhal/fs-boot.js
 // =============================================================================
@@ -396,7 +396,7 @@ exports.extension = function (path) {
 };
 })(modules["narwhal/fs"] = {});
 
-// File - platform specific
+// FS - platform specific
 // =============================================================================
 (function (exports) {
 
@@ -423,7 +423,7 @@ exports.read = function (path, options) {
 
     return text;
 };
-})(modules.file = modules["narwhal/fs"]);
+})(modules.fs = modules["narwhal/fs"]);
 
 // Loader
 //
@@ -943,7 +943,7 @@ require = require("sandbox").Sandbox({
 // Add engine-specific system/file if available
 try {
     require("system-engine");
-    require("file-engine");
+    require("fs-engine");
 } catch (e) {
     if (e.description.indexOf("require error") === -1) { throw e; }
 }
