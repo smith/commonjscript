@@ -189,8 +189,44 @@ exports.stdio = { print: exports.stdout.print };
 
 exports.print = exports.stdout.print;
 
-// TODO
-exports.env = {};
+// Convert a JScript/VBScript collection to a plain ol object
+// XXX: Not standard
+exports.collectionToObject = function (c) {
+    var o = {}, // new object
+        e = new Enumerator(c),
+        cnt = 0, // count
+        item; // item
+
+    // Iterate through collection
+    while (!e.atEnd()) {
+        item = e.item();
+        // null items have no count
+        try { cnt = c(item).count; }
+        catch (er) { cnt = -1; }
+
+        if (cnt > 1) { // multiple items
+            o[item] = [];
+            for (var i = 1; i < cnt + 1; i += 1) {
+                o[item].push(String(c(item)(i)));
+            }
+        } else if (cnt === 0) { o[item] = undefined; }
+        else { o[item] = c(item); }
+
+        e.moveNext();
+    }
+
+    for (i in o) {
+        // Stringify everything but null, undefined, and array
+        if (Object.prototype.hasOwnProperty.call(o, i) && o[i] !== null &&
+            typeof o[i] !== "undefined" && typeof o[i].length === "undefined") {
+            o[i] = String(o[i]);
+        }
+    }
+
+    return o;
+};
+
+exports.env = exports.collectionToObject(Request.ServerVariables);
 
 })(modules.system = {});
 
