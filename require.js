@@ -169,6 +169,7 @@ exports.Module = function (text, path, line) {
 };
 
 })(modules.engine = {});
+modules["narwhal/engine"] = modules.engine;
 
 // System
 // =============================================================================
@@ -575,7 +576,7 @@ exports.read = function (path, options) {
 // occur here have to be manually accounted for (who loads
 // the loader?)
 
-var ENGINE = require("engine");
+var ENGINE = require("narwhal/engine");
 // HACK: the stars prevent the file module from being sent to browser
 //  clients with the regexen we're using.  we need a real solution
 //  for this.
